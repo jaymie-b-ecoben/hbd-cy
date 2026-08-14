@@ -53,7 +53,8 @@
   /* ---------- dock ---------- */
   .dock{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);
     display:flex;gap:5px;padding:7px;background:var(--panel);border:1px solid var(--line);z-index:10;
-    max-width:calc(100vw - 28px);overflow-x:auto;scrollbar-width:none}
+    max-width:calc(100vw - 28px);overflow-x:auto;scrollbar-width:none;
+    transition:transform .32s cubic-bezier(.2,.8,.2,1),opacity .25s}
   .dock::-webkit-scrollbar{display:none}
   .dock button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:9px 11px 8px;
     border:1px solid transparent;min-width:62px;transition:border-color .15s,background .15s;flex:0 0 auto}
@@ -70,13 +71,20 @@
     display:flex;flex-direction:column;overflow:hidden}
   #panel.open{transform:translateX(0)}
   .p-handle{display:none}
-  .p-head{padding:26px 28px 18px;border-bottom:1px solid var(--line);position:relative}
+  .p-head{padding:22px 28px 18px;border-bottom:1px solid var(--line)}
   .p-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--ice)}
   .p-name{font-size:36px;font-weight:600;letter-spacing:.04em;margin-top:6px;line-height:1}
   .p-tag{font-size:13px;color:var(--dim);margin-top:10px;line-height:1.55}
-  .p-close{position:absolute;top:14px;right:14px;font-family:var(--mono);font-size:11px;
-    letter-spacing:.15em;color:var(--dim);padding:8px 10px;border:1px solid transparent}
-  .p-close:hover{color:var(--text);border-color:var(--line)}
+  .p-topbar{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:14px}
+  .p-close{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    width:34px;height:34px;border-radius:50%;font-size:15px;line-height:1;color:var(--dim);
+    background:rgba(143,214,255,.06);border:1px solid var(--line);transition:.15s}
+  .p-close:hover{color:var(--text);border-color:rgba(143,214,255,.5);background:rgba(143,214,255,.14)}
+  .p-close:active{transform:scale(.9)}
+  .p-nav{display:none;flex:1;gap:8px}
+  .p-nav button{flex:1;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    padding:9px 8px;border:1px solid var(--line);color:var(--dim);text-align:center;transition:.15s}
+  .p-nav button:active{color:var(--gold);border-color:rgba(240,180,41,.55)}
   .p-body{flex:1;overflow-y:auto;padding:20px 28px 30px;-webkit-overflow-scrolling:touch}
   .stat{display:flex;justify-content:space-between;align-items:baseline;gap:14px;
     padding:10px 0;border-bottom:1px solid rgba(143,214,255,.09)}
@@ -200,17 +208,26 @@
     .tick{display:none}
     .dock button{min-width:52px;padding:8px 8px 7px}
     .dock .dot{width:12px;height:12px}
-    #panel{top:auto;height:56vh;width:100vw;border-left:none;border-top:1px solid rgba(240,180,41,.4);
-      transform:translateY(105%)}
+    .dock.hide{transform:translateX(-50%) translateY(140%);opacity:0;pointer-events:none}
+    #panel{top:auto;height:min(52vh,460px);width:100vw;border-left:none;border-top:1px solid rgba(240,180,41,.4);
+      transform:translateY(105%);border-radius:16px 16px 0 0}
     #panel.open{transform:translateY(0)}
-    .p-handle{display:block;width:44px;height:4px;border-radius:2px;background:rgba(143,214,255,.3);
-      margin:10px auto 0}
+    .p-handle{display:flex;align-items:center;justify-content:center;width:100%;height:22px;
+      touch-action:none;cursor:grab}
+    .p-handle::after{content:'';width:40px;height:4px;border-radius:2px;background:rgba(143,214,255,.35)}
     .p-head{padding:14px 22px 14px}
-    .p-name{font-size:26px}
+    .p-topbar{margin-bottom:10px}
+    .p-close{width:38px;height:38px;font-size:16px}
+    .p-nav{display:flex}
+    .p-name{font-size:24px}
     .p-tag{font-size:12.5px;margin-top:8px}
-    .p-body{padding:16px 22px calc(24px + env(safe-area-inset-bottom))}
+    .p-body{padding:14px 22px calc(24px + env(safe-area-inset-bottom))}
     .c-discs{gap:32px;height:180px}
     #hint{bottom:calc(88px + env(safe-area-inset-bottom));font-size:9px}
+  }
+  @media (max-width:380px){
+    .p-nav button{font-size:9px;padding:8px 6px}
+    .dock button{min-width:46px}
   }
   @media (prefers-reduced-motion:reduce){
     #panel,#loader{transition:none}
@@ -247,6 +264,8 @@ Just something fun to explore. Hope you enjoy it.</p>
   </div>
   <div class="controls">
     <button class="ctl" id="snapBtn" title="Save a PNG snapshot">Snap</button>
+    <button class="ctl" id="muteBtn" aria-pressed="false" title="Toggle ambience">🔈</button>
+    <button class="ctl" id="tourBtn" title="Autoplay a birthday tour of every planet">🎂 Tour</button>
     <div class="speed">
       <label for="speed">Time</label>
       <input type="range" id="speed" min="0" max="10" step="0.5" value="2" aria-label="Simulation speed">
@@ -260,12 +279,25 @@ Just something fun to explore. Hope you enjoy it.</p>
 
 <p id="hint">Drag to orbit · pinch or scroll to zoom · tap a planet</p>
 
+<div id="tourBar" role="status" aria-live="polite">
+  <span id="tourLabel">Birthday Tour</span>
+  <span id="tourStep">1 / 9</span>
+  <button id="tourStop">Stop</button>
+</div>
+<div id="confetti" aria-hidden="true"></div>
+
 <nav class="dock" id="dock" aria-label="Planets"></nav>
 
 <aside id="panel" aria-label="Planet details">
-  <div class="p-handle"></div>
+  <div class="p-handle" id="pHandle" aria-hidden="true"></div>
   <div class="p-head">
-    <button class="p-close" id="panelClose">Close ✕</button>
+    <div class="p-topbar">
+      <div class="p-nav">
+        <button id="pPrev" aria-label="Previous planet">‹ Prev</button>
+        <button id="pNext" aria-label="Next planet">Next ›</button>
+      </div>
+      <button class="p-close" id="panelClose" aria-label="Close panel">✕</button>
+    </div>
     <div class="p-eyebrow" id="pEyebrow"></div>
     <div class="p-name" id="pName"></div>
     <div class="p-tag" id="pTag"></div>
@@ -910,12 +942,17 @@ function applyCamera(){
     focus.z+camDist*Math.sin(camPhi)*Math.sin(camTheta)
   );
   camera.lookAt(focus);
-  /* On mobile the bottom sheet covers ~56% of the screen, so glide the
-     framing upward while it's open: the planet sits in the visible strip. */
-  const wantShift=(IS_MOBILE&&followed&&panelEl.classList.contains('open'))?0.27:0;
+  /* On mobile the bottom sheet covers roughly half the screen, so glide the
+     framing upward while it's open: the planet sits in the visible strip above it.
+     setViewOffset needs a *taller* virtual frame than the real canvas — the
+     previous version passed the same height for both, which is an invalid
+     (degenerate) offset and corrupted the projection matrix, glitching the
+     3D preview any time the panel was open on mobile. */
+  const wantShift=(IS_MOBILE&&followed&&panelEl.classList.contains('open'))?0.32:0;
   viewShift+=(wantShift-viewShift)*0.08;
   if(viewShift>0.003){
-    camera.setViewOffset(innerWidth,innerHeight,0,innerHeight*viewShift,innerWidth,innerHeight);
+    const shiftPx=innerHeight*viewShift;
+    camera.setViewOffset(innerWidth,innerHeight+shiftPx,0,shiftPx,innerWidth,innerHeight);
   }else if(camera.view){
     camera.clearViewOffset();
   }
@@ -1025,10 +1062,12 @@ function selectPlanet(p,fly=true){
     b.classList.toggle('active',b.dataset.id===p.id));
   renderPanel(p);
   $('#panel').classList.add('open');
+  if(IS_MOBILE){$('#dock').classList.add('hide');if(navigator.vibrate)navigator.vibrate(9);}
 }
 function goHome(){
   followed=null;selected=null;targetDist=IS_MOBILE?230:185;
   $('#panel').classList.remove('open');
+  $('#dock').classList.remove('hide');
   document.querySelectorAll('.dock button').forEach(b=>b.classList.remove('active'));
 }
 function statRow(k,v){return `<div class="stat"><span class="k">${k}</span><span class="v">${v}</span></div>`;}
@@ -1087,6 +1126,35 @@ addEventListener('keydown',e=>{
 });
 $('#panelClose').addEventListener('click',goHome);
 $('#pCompare').addEventListener('click',()=>openCompare(selected?selected.id:'earth'));
+$('#pPrev').addEventListener('click',()=>cyclePlanet(-1));
+$('#pNext').addEventListener('click',()=>cyclePlanet(1));
+
+/* ---------- drag-down-to-close on the mobile sheet handle ---------- */
+(function(){
+  const handle=$('#pHandle'),panel=$('#panel');
+  let sy=0,dy=0,active=false;
+  handle.addEventListener('pointerdown',e=>{
+    if(!IS_MOBILE)return;
+    active=true;dy=0;sy=e.clientY;
+    panel.style.transition='none';
+    handle.setPointerCapture(e.pointerId);
+  });
+  handle.addEventListener('pointermove',e=>{
+    if(!active)return;
+    dy=Math.max(0,e.clientY-sy);
+    panel.style.transform=`translateY(${dy}px)`;
+  });
+  function endDrag(){
+    if(!active)return;
+    active=false;
+    panel.style.transition='';
+    panel.style.transform='';
+    if(dy>85)goHome();
+    dy=0;
+  }
+  handle.addEventListener('pointerup',endDrag);
+  handle.addEventListener('pointercancel',endDrag);
+})();
 
 /* ---------- dock ---------- */
 const dock=$('#dock');
@@ -1184,11 +1252,30 @@ $('#orbitBtn').addEventListener('click',e=>{
 /* ---------- snapshot ---------- */
 $('#snapBtn').addEventListener('click',()=>{
   renderer.render(scene,camera);                   // fresh frame so the buffer is populated
-  const a=document.createElement('a');
-  a.href=renderer.domElement.toDataURL('image/png');
-  a.download='planetary-explorer-'+(selected?selected.id:'overview')+'.png';
-  a.click();
-  if(!reduced){const f=$('#flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go');}
+  const filename='planetary-explorer-'+(selected?selected.id:'overview')+'.png';
+  const flash=()=>{if(!reduced){const f=$('#flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go');}};
+  const download=()=>{
+    const a=document.createElement('a');
+    a.href=renderer.domElement.toDataURL('image/png');
+    a.download=filename;
+    a.click();
+  };
+  // On mobile, sharing beats downloading — Safari/Chrome mobile just open the
+  // PNG in a new tab on download, which is a dead end. Share sheet if we can.
+  if(IS_MOBILE&&navigator.share&&renderer.domElement.toBlob){
+    renderer.domElement.toBlob(async blob=>{
+      if(!blob)return download();
+      const file=new File([blob],filename,{type:'image/png'});
+      try{
+        if(navigator.canShare&&navigator.canShare({files:[file]})){
+          await navigator.share({files:[file],title:'Planetary Explorer'});
+        }else download();
+      }catch(err){ /* user cancelled — no fallback needed */ }
+    },'image/png');
+  }else{
+    download();
+  }
+  flash();
 });
 
 /* ---------- keyboard shortcuts ---------- */
@@ -1267,15 +1354,22 @@ function dismissIntro(){
   setTimeout(()=>$('#hint').classList.add('gone'),9000);
 }
 const bgMusic = $('#bgMusic');
+const muteBtn = $('#muteBtn');
 if(bgMusic){
   bgMusic.volume = 0.18;
   bgMusic.setAttribute('playsinline','');
 }
+function setMusic(on){
+  if(!bgMusic)return;
+  if(on)bgMusic.play().catch(()=>{});
+  else bgMusic.pause();
+  muteBtn.setAttribute('aria-pressed',on);
+  muteBtn.textContent=on?'🔊':'🔈';
+}
+muteBtn.addEventListener('click',()=>setMusic(bgMusic&&bgMusic.paused));
 $('#introStart').addEventListener('click',()=>{
-  if(bgMusic){
-    bgMusic.currentTime = 0;
-    bgMusic.play().catch(()=>{});
-  }
+  if(bgMusic)bgMusic.currentTime = 0;
+  setMusic(true);
   dismissIntro();
 });
 $('#intro').addEventListener('click',e=>{if(e.target.id==='intro')dismissIntro();});
