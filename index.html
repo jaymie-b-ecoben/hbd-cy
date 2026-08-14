@@ -152,6 +152,21 @@
     text-transform:uppercase;padding:12px 32px;border:1px solid rgba(240,180,41,.55);color:var(--gold)}
   .sb-card button:hover{background:rgba(240,180,41,.08)}
 
+  #littleModal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+    padding:24px;background:rgba(4,6,12,.62);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+  #littleModal.show{display:flex}
+  .little-card{max-width:380px;width:100%;background:var(--panel);border:1px solid var(--line);
+    padding:28px 28px 24px;text-align:center}
+  .little-msg{font-size:15px;line-height:1.7;color:var(--text)}
+  .little-sign{font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--ice);
+    margin-top:16px;text-align:right}
+  .little-actions{display:flex;gap:8px;margin-top:22px}
+  .little-actions button{flex:1;font-family:var(--mono);font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;padding:11px;border:1px solid var(--line);color:var(--dim);transition:.15s}
+  .little-actions button:hover{color:var(--text);border-color:rgba(143,214,255,.45)}
+  #littleAnother{border-color:rgba(240,180,41,.55);color:var(--gold)}
+  #littleAnother:hover{background:rgba(240,180,41,.08)}
+
   /* ---------- you on this planet ---------- */
   .you{margin-top:24px;border:1px solid var(--line);padding:15px}
   .you h3{font-family:var(--mono);font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
@@ -265,7 +280,7 @@ Just something fun to explore. Hope you enjoy it.</p>
   <div class="controls">
     <button class="ctl" id="snapBtn" title="Save a PNG snapshot">Snap</button>
     <button class="ctl" id="muteBtn" aria-pressed="false" title="Toggle ambience">🔈</button>
-    <button class="ctl" id="tourBtn" title="Autoplay a birthday tour of every planet">🎂 Tour</button>
+    <button class="ctl" id="littleBtn" title="A little something">⭐ A Little Something</button>
     <div class="speed">
       <label for="speed">Time</label>
       <input type="range" id="speed" min="0" max="10" step="0.5" value="2" aria-label="Simulation speed">
@@ -278,13 +293,6 @@ Just something fun to explore. Hope you enjoy it.</p>
 </header>
 
 <p id="hint">Drag to orbit · pinch or scroll to zoom · tap a planet</p>
-
-<div id="tourBar" role="status" aria-live="polite">
-  <span id="tourLabel">Birthday Tour</span>
-  <span id="tourStep">1 / 9</span>
-  <button id="tourStop">Stop</button>
-</div>
-<div id="confetti" aria-hidden="true"></div>
 
 <nav class="dock" id="dock" aria-label="Planets"></nav>
 
@@ -344,6 +352,17 @@ Just something fun to explore. Hope you enjoy it.</p>
     <p class="b-msg">Have a really good one.</p>
     <div class="sb-sign">—J</div>
     <button id="sunBdayClose">Close</button>
+  </div>
+</div>
+
+<div id="littleModal" role="dialog" aria-label="A little something">
+  <div class="little-card">
+    <div class="little-msg" id="littleMsg"></div>
+    <div class="little-sign">—J</div>
+    <div class="little-actions">
+      <button id="littleAnother">Another</button>
+      <button id="littleClose">Close</button>
+    </div>
   </div>
 </div>
 
@@ -1124,6 +1143,102 @@ $('#sunBday').addEventListener('click',e=>{if(e.target.id==='sunBday')closeSunBd
 addEventListener('keydown',e=>{
   if(e.key==='Escape'&&$('#sunBday').classList.contains('show'))closeSunBday();
 });
+
+/* =========================================================
+   A LITTLE SOMETHING — a random small note, just because
+========================================================= */
+const LITTLE_MSGS=[
+  "Hope something unexpectedly good happens to you today.",
+  "Don't forget to enjoy the small stuff too.",
+  "Hope you get to eat something really good today.",
+  "You deserve a day where nothing is unnecessarily stressful.",
+  "Hope you laugh a lot this year. Like, proper ugly laughing.",
+  "Take a break when you need one. The world can wait.",
+  "Hope you get to do more of the things you actually enjoy.",
+  "I hope something you've been waiting for finally works out.",
+  "Don't be too hard on yourself. You're doing fine.",
+  "Hope you meet more people who make things feel easy.",
+  "Here's to fewer awkward situations this year.",
+  "Hope you have more random good days than you expect.",
+  "Remember to take pictures sometimes. You'll want them later.",
+  "Hope you get some really good food and even better company.",
+  "I hope you have something to look forward to.",
+  "Maybe this year you'll finally get around to that thing you've been putting off.",
+  "Hope you get to go somewhere you've never been before.",
+  "You don't need to have everything figured out yet.",
+  "Hope this year gives you a few stories worth telling.",
+  "Anyway, I hope you're doing okay. And if not, I hope things get better soon.",
+  "Here's your reminder to actually enjoy your birthday.",
+  "Hope you get spoiled a little today. You deserve it.",
+  "Wishing you a year with less overthinking and more doing.",
+  "Hope life surprises you in a good way.",
+  "And yes, you are allowed to treat yourself today.",
+  "Hope you get a really good night's sleep tonight.",
+  "Hope you find a song that you end up playing way too many times.",
+  "Hope you get to spend more time with people who make you laugh.",
+  "Don't forget to give yourself credit for how far you've come.",
+  "Hope you have at least one completely unplanned day that turns out really good.",
+  "I hope you get good news when you're not even expecting it.",
+  "Hope you get to try something you've always been curious about.",
+  "You deserve more days where you don't have to rush anywhere.",
+  "Hope you find a new favorite place this year.",
+  "Here's to making memories without having to plan every little thing.",
+  "Hope you have more 'that was actually a really good day' moments.",
+  "I hope you get a reason to smile for absolutely no particular reason.",
+  "Don't forget that resting is also being productive sometimes.",
+  "Hope you get to do something completely pointless but really fun.",
+  "Maybe this is the year you finally stop saying 'I'll do it tomorrow.'",
+  "Hope you get more good surprises than bad ones.",
+  "You can always make room for dessert. Just saying.",
+  "Hope you get to laugh about something stupid today.",
+  "I hope you make a memory this year that randomly makes you smile later.",
+  "Hope you have people around you who make ordinary days better.",
+  "This planet contains absolutely no useful information. Just wanted to say hi.",
+  "Congratulations, you found another random message.",
+  "I had something profound to say here. Never mind.",
+  "Okay, you've explored this far. Respect.",
+  "Not every message needs to be meaningful. So… hi.",
+  "I hope you get to eat your favorite food soon.",
+  "You know what? I think you're doing pretty alright.",
+  "Hope you have a really good laugh today.",
+  "I wonder what your favorite planet would be if you actually had to pick one.",
+  "Some days are just meant to be lazy. That's fine.",
+  "Hope you get one of those days where everything somehow works out.",
+  "I feel like you probably deserve a little treat.",
+  "I hope you get to go somewhere nice just because.",
+  "There are probably a million things you could be doing right now. Glad you found this one.",
+  "I hope you never run out of things to look forward to.",
+  "Random thought: I hope you're having a good day.",
+  "I hope you keep finding little things that make you happy.",
+  "Maybe don't take everything so seriously. Sometimes things are just funny.",
+  "I hope you get to make a decision purely because you want to.",
+  "Somewhere in this universe, you are probably someone's favorite person.",
+  "I hope you get a really good surprise this year.",
+  "If you needed an excuse to do something fun, this is it.",
+  "I hope you have at least one completely ridiculous day this year.",
+  "Whatever you're working toward, I hope you get there eventually.",
+  "Anyway, I hope things are good with you."
+];
+let lastLittleIdx=-1;
+function randomLittleMsg(){
+  let i;
+  do{i=Math.floor(Math.random()*LITTLE_MSGS.length);}while(LITTLE_MSGS.length>1&&i===lastLittleIdx);
+  lastLittleIdx=i;
+  return LITTLE_MSGS[i];
+}
+function openLittle(){
+  $('#littleMsg').textContent=randomLittleMsg();
+  $('#littleModal').classList.add('show');
+}
+function closeLittle(){$('#littleModal').classList.remove('show');}
+$('#littleBtn').addEventListener('click',openLittle);
+$('#littleAnother').addEventListener('click',()=>{$('#littleMsg').textContent=randomLittleMsg();});
+$('#littleClose').addEventListener('click',closeLittle);
+$('#littleModal').addEventListener('click',e=>{if(e.target.id==='littleModal')closeLittle();});
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&$('#littleModal').classList.contains('show'))closeLittle();
+});
+
 $('#panelClose').addEventListener('click',goHome);
 $('#pCompare').addEventListener('click',()=>openCompare(selected?selected.id:'earth'));
 $('#pPrev').addEventListener('click',()=>cyclePlanet(-1));
